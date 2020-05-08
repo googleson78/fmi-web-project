@@ -46,7 +46,7 @@
           </ul>
           Но защо? Нали е <b>описано</b> в API-то вече един път. Защо трябва да се грижим да превеждаме това описание на код? Не може ли по описанието да получим тези почти механични части "безплатно"?
           <br><br>
-          Servant<a href="#servant-frontpage">[0]</a> е библиотека и същевременно вграден предметно-ориентиран език (наричан оттук-нататък "DSL"/"EDSL") за Haskell, позволяващ
+          Servant<a href="#servant-frontpage">[1]</a> е библиотека и същевременно вграден предметно-ориентиран език (наричан оттук-нататък "DSL"/"EDSL") за Haskell, позволяващ
           спецификацията на API-та <b>в</b> типовете система на Haskell.
           <br><br>
           Това че нашият интърфейс става (почти първокласен) гражданин на езика за програмиране ни позволява да използваме всичките подходи за генерично програмиране, за да автоматизираме
@@ -56,7 +56,7 @@
 
         <div class="section" id="example">
           <h2>Пример</h2>
-          Нека да разгледаме прост пример, адаптиран от статия за Servant<a href="#servant-paper">[1]</a>, но модернизиран за днешното състояние на библиотеката.
+          Нека да разгледаме прост пример, адаптиран от статия за Servant<a href="#servant-paper">[2]</a>, но модернизиран за днешното състояние на библиотеката.
           <br>
           Той ще служи за обяснения и демонстрация на останалите функционалности:
           <pre><code>{-# LANGUAGE DataKinds #-}
@@ -153,7 +153,67 @@ type StepCounter = "step" :> PostNoContent
 
         <div class="section" id="combinators">
           <h2>Основни комбинатори</h2>
-          WIP
+          В Servant има набор от основни "комбинатори"</code><a href="#combinator">[3]</a>, които позволяват сглабянето на по-малки API-та за да се получи нещо по-голямо.
+          <br>
+          Тук ще разгледаме най-често използваните такива, както и как се правят заявки към тях.
+          <h4><code>(:<|>)</code></h4>
+          Позволява ни да правим <b>"обединение"</b> на две API-та, т.е. ако имаме предварително две такива, с този оператор правим ново, което сервира и двете, както е демонстирано в примера
+          <br>
+          Съществува и типът <code>EmptyAPI</code><a href="#empty-api">[4]</a>, чрез който създателите на библиотеката се стремят да направят <code>(:<|>)</code> на <b>моноидална</b><a href="#monoid">[5]</a> операция, т.е.
+          <code>EmptyAPI</code> е <b>неутрален елемент</b> на <code>(:<|>)</code>.
+          Той е API което не отговаря на никакви заявки и съответно не могат да му бъдат правени заявки.
+          <br>
+          За да достъпим <code>api1 :<|> api2</code> трябва да можем да достъпим <code>api1</code> <b>или</b> <code>api2</code>
+          <br>
+          При припокриване (например <code>StepCounter :<|> StepCounter</code>, използвайки горния пример) на двете API-та се избира винаги лявото.
+          <h4><code>(:>)</code></h4>
+          Позволява ни да правим <b>"влагане"</b> на API-та, както е показано в примера.
+          <br>
+          За да достъпим <code>api1 :> api2 </code> трябва да "изпълним изискванията" за достъпване на <code>api1</code> <b>и</b> тези на <code>api2</code>.
+          <h4>Низове на типово ниво</h4>
+          Всеки низ на типово ниво е сам по себе си "константен комбинатор", със семантиката на "под-адрес", както е демонстрирано в примера.
+          <h4><code>Get</code>/<code>Post</code>/<code>Put</code>/etc</h4>
+          Комбинатори които отговарят на съответните HTTP методи за заявки.
+          <br>
+          Всеки от тях взима два аргумента:
+          <ul>
+            <li>на какви типове (доста близко отговарящи на <code>Content-Type</code>) ще отговаряме</li>
+            <li>какъв тип данни (в Haskell-ския смисъл на тип) ще връща сървърът</li>
+          </ul>
+          Въпреки че Haskell-ските типове данни не съществуват извън Haskell, а само тяхната кодировка (в съответния <code>Content-Type</code>),
+          е полезно да говорим за тях:
+          <ul>
+            <li>по този начин Servant научава как да (де)кодира данни</li>
+            <li>ако програмираме изцяло на Haskell (или можем някак да генерирам (де)кодирания на друг езиц), можем да получим автоматично (де)кодирането</li>
+            <li>данните които обработваме са директно в нашия "бизнес домейн" - не е нужно да говорим за JSON, когато реално искаме да говорим за <code>User</code></li>
+          </ul>
+          За да се направи заявка към (например) <code>Get '[JSON, PlainText] User</code> трябва:
+          <ul>
+            <li>да сложим <code>GET</code> за метод на нашата заявка.</li>
+            <li>да сложим подходящия <code>Content-Type</code> - в този случай или json или utf8 кодиран текст.</li>
+          </ul>
+          При ползване на servant-client естествено тези стъпки са автоматично извършени, както и получаваме автоматично декодирани към правилния Haskell-ски тип данни.
+          <br>
+          Дуално на това, servant-server се грижи да отговаряме само на подходящи настроени заявки, както и да кодира автоматично данните които пращаме, от Haskell-ските им еквиваленти.
+          <br>
+          За да работи цялата тази "автомагия" тук, както и в останалите места където има някакво кодиране, се разчита на конкретни широко използвани типови класове, съответстващи на
+          дадените <code>Content-Type</code>-ове в този случай.
+          <br>
+          Обикновено всяко API завършва на един от тези методи, като последно нещо във верига от много пъти приложени <code>(:>)</code>.
+          <br>
+          Всичките комбинатори от тази група всъщност са дефинирани използвайки един такъв на по-ниско ниво - <code>Verb</code><a href="#servant-verb">[6]</a>.
+          <h4><code>QueryParam</code></code></h4>
+          Комбинатор, който добавя параметри или флаг на заявката към API.
+          <br>
+          Той има два аргумента - име, към което да закачаме аргумента, и Haskell-ски тип, който да (де)кодираме.
+          Има допълнително и <code>QueryFlag</code> с един аргумент име, което е <code>QueryParam</code> специализирано до булева стойност.
+          <br>
+          И двата комбинатора притежават задължителен и незадължителен вариант, като това се отразява в Haskell света чрез ползването на <code>Maybe</code> типа, който позволява "отсъствие" (подобно на <code>std::optional</code> например).
+          <br>
+          При ползването на servant-client е нужно само да подадем съответния Haskell-ски тип като аргумент на Haskell-ска функция, както и дуално получаваме Haskell-ски тип като аргумент на функция, при servant-server.
+          Тук за (де)кодиране се използват <code>ToHttpApiData</code>/<code>FromHttpApiData</code><a href="#api-data">[7]</a>
+          <br>
+          Извън servant-client, за да се направи заявка към <code>QueryParam "asdf" Int :> api1 </code> е достатъчно да направим заявка към <code>api1</code>, като към края на адреса ѝ закачим (при всичките други параметри) <code>asdf1=1</code>.
         </div>
 
         <div class="section" id="serving">
@@ -176,6 +236,11 @@ type StepCounter = "step" :> PostNoContent
           <ol>
             <li id="servant-frontpage"> <a href="https://www.servant.dev"> "Servant"</a> <br> [https://www.servant.dev], посетено последно на 12.04.2020</li>
             <li id="servant-paper"> <a href="https://alpmestan.com/servant/servant-wgp.pdf"> "Type-level Web APIs with Servant"</a> <br> [https://alpmestan.com/servant/servant-wgp.pdf], посетено последно на 12.04.2020</li>
+            <li id="combinator"> <a href="https://wiki.haskell.org/Combinator"> "Combinator"</a> <br> [https://wiki.haskell.org/Combinator], посетено последно на 08.05.2020</li>
+            <li id="empty-api"> <a href="https://hackage.haskell.org/package/servant-0.17/docs/Servant-API.html#t:EmptyAPI"> "EmptyAPI"</a> <br> [https://hackage.haskell.org/package/servant-0.17/docs/Servant-API.html#t:EmptyAPI], посетено последно на 08.05.2020</li>
+            <li id="monoid"> <a href="https://en.wikipedia.org/wiki/Monoid"> "Monoid"</a> <br> [https://en.wikipedia.org/wiki/Monoid], посетено последно на 08.05.2020</li>
+            <li id="servant-verb"> <a href="https://hackage.haskell.org/package/servant-0.17/docs/Servant-API.html#t:Verb"> "Verb"</a> <br> [https://hackage.haskell.org/package/servant-0.17/docs/Servant-API.html#t:Verb], посетено последно на 08.05.2020</li>
+            <li id="api-data"> <a href="https://hackage.haskell.org/package/http-api-data-0.4.1.1/docs/Web-HttpApiData.html"> "Web.HttpApiData"</a> <br> [https://hackage.haskell.org/package/http-api-data-0.4.1.1/docs/Web-HttpApiData.html], посетено последно на 08.05.2020</li>
           </ol>
         </div>
       </div>
