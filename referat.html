@@ -213,6 +213,8 @@ type StepCounter = "step" :> PostNoContent
           <br>
           Тъй като това е нещо което клиентът праща и сървърът приема, семантиката му е "дуална" на тази на комбинаторите за методи - при сървъра го получаваме като аргумент, а при клиента трябва да го подадем като аргумент.
           <br>
+          Извън servant-client, за да се направи заявка към <code>ReqBody '[JSON] User</code> е достатъчно да се сложи като тяло на заявката JSON-кодирана версия на <code>User</code>.
+          <br>
           <code>ReqBody</code>, както и повечето други носещи данни комбинатори, притежава задължителен и незадължителен вариант, като това се отразява в Haskell света чрез ползването на <code>Maybe</code> типа, който позволява "отсъствие" на данни (подобно на <code>std::optional</code> например).
           <h4><code>QueryParam</code></code></h4>
           Комбинатор, който добавя параметри или флаг на заявката към API.
@@ -224,7 +226,6 @@ type StepCounter = "step" :> PostNoContent
           Тук за (де)кодиране се използват <code>ToHttpApiData</code>/<code>FromHttpApiData</code><a href="#api-data">[7]</a>
           <br>
           Извън servant-client, за да се направи заявка към <code>QueryParam "asdf" Int :> api1 </code> е достатъчно да направим заявка към <code>api1</code>, като към края на адреса ѝ закачим (при всичките други параметри) <code>asdf1=1</code>.
-          Извън servant-client, за да се направи заявка към <code>ReqBody '[JSON] User</code> е достатъчно да се сложи като тяло на заявката JSON-кодирана версия на <code>User</code>.
         </div>
 
         <div class="section" id="serving">
