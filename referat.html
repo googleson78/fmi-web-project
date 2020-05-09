@@ -226,6 +226,14 @@ type StepCounter = "step" :> PostNoContent
           Тук за (де)кодиране се използват <code>ToHttpApiData</code>/<code>FromHttpApiData</code><a href="#api-data">[7]</a>
           <br>
           Извън servant-client, за да се направи заявка към <code>QueryParam "asdf" Int :> api1 </code> е достатъчно да направим заявка към <code>api1</code>, като към края на адреса ѝ закачим (при всичките други параметри) <code>asdf1=1</code>.
+          <h4><code>Header</code></code></h4>
+          Комбинатор, добавящ заглавна част(header) на заявката към API.
+          <br>
+          Той има два аргумента и се ползва по подобен на <code>QueryParam</code> начин - дава се име и Haskell-ски тип данни, който да очакваме/предаваме.
+          <br>
+          Семантиката му в servant-server и servant-client е почти неразличима от тази на <code>QueryParam</code> - дори същите типови класове са използвани за (де)кодиране.
+          <br>
+          Извън тях, заявка към <code>Header "asdf" Int :> api1</code> е същото като заявка към <code>api1</code>, като допълнително е добавен header <code>asdf: 5</code>.
         </div>
 
         <div class="section" id="serving">
