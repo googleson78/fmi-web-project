@@ -359,7 +359,16 @@ reqStepCounter = let _ :<|> f = client api in f
 # `ClientM a`
 `ClientM` е "среда" в която можем да правим заявки и да получаваме грешки.
 
+# `ClientM a`
+`ClientM` е "среда" в която можем да правим заявки и да получаваме грешки.
+
 "Пази в себе си" стойност от тип `a` - реално резултат на заявка в нашия случай.
+
+# `ClientM a`
+`ClientM` е "среда" в която можем да правим заявки и да получаваме грешки.
+
+"Пази в себе си" стойност от тип `a` - реално резултат на заявка в нашия случай.
+
 Можем да си го мислим като заявка, чакащата да се случи. Изпълнява се с `runClientM`
 
 # `Client`
@@ -379,6 +388,21 @@ reqGetCounter :: ClientM CounterVal
 Right (CounterVal {getCounterVal = 39})
 ```
 Връща `Right` (индикация за "успех"), който съдържа сегашната стойност на брояча.
+
+# `reqStepCounter`
+"Истински" тип на `reqStepCounter`
+```haskell
+reqStepCounter :: Maybe User -> CounterVal -> ClientM NoContent
+```
+
+# `reqStepCounter`
+"Истински" тип на `reqStepCounter`
+```haskell
+reqStepCounter :: Maybe User -> CounterVal -> ClientM NoContent
+```
+Обикновена `Haskell`-ска функция която взима два аргумента - потребител (header-а) и стойност с която да инкрементираме (тялото).
+
+Връща специален тип `NoContent`, защото това сме специфицирали в API-то
 
 # `reqStepCounter`
 "Истински" тип на `reqStepCounter`
