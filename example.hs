@@ -64,9 +64,13 @@ globalCounter :: IORef CounterVal
 globalCounter = unsafePerformIO $ newIORef $ CounterVal 0
 {-# NOINLINE globalCounter #-}
 
+-- "real" signature:
+-- reqGetCounter :: ClientM CounterVal
 reqGetCounter :: Client ClientM GetCounter
 reqGetCounter = let f :<|> _ = client api in f
 
+-- "real" signature:
+-- reqStepCounter :: Maybe String -> CounterVal -> ClientM NoContent
 reqStepCounter :: Client ClientM StepCounter
 reqStepCounter = let _ :<|> f = client api in f
 
