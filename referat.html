@@ -435,12 +435,14 @@ Starting a server
 <в-друг-терминал>
 > curl localhost:8080
 0
+
 > curl \
   -X POST \                             # слагаме POST за метод на заявката
   -H 'Content-Type: application/json' \ # слагаме Content-Type header
   -d '13' \                             # слагаме тяло 13
   localhost:8080/step
 You must identify yourself via the "User" header. # не става, щото нямаме User
+
 > curl \
   -X POST \
   -H 'Content-Type: application/json' \
@@ -448,14 +450,17 @@ You must identify yourself via the "User" header. # не става, щото н
   -H 'User: Gosho' \ # слагаме и header User
   localhost:8080/step
 Only Pesho can modify the counter. # но ние не сме Pesho, не можем да променяме брояча
+
 > curl \
   -X POST \
   -H 'Content-Type: application/json' \
   -d '13' \
   -H 'User: Pesho' \
   localhost:8080/step
+
 > curl localhost:8080
 13 # success!
+
 > curl \
   -X POST \
   -H 'Content-Type: application/json' \
