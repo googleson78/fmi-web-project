@@ -60,6 +60,9 @@ incrementCounter n = liftIO $ atomicModifyIORef' globalCounter $ \old -> (old + 
 readCounter :: Handler CounterVal
 readCounter = liftIO $ readIORef globalCounter
 
+-- the NOINLINE here and in defaultClientEnv
+-- is a popular haskell trick to make "global" variables
+-- it ensures that the compiler will not try to inline this value in multiple places and evaluate it more than once
 globalCounter :: IORef CounterVal
 globalCounter = unsafePerformIO $ newIORef $ CounterVal 0
 {-# NOINLINE globalCounter #-}
