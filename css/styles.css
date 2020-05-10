@@ -90,23 +90,6 @@ body {
 	display:block;
 }
 
-.image{
-	max-width: 78%;
-    box-sizing: border-box;
-}
-
-.figure-img{
-	position:relative;
-	padding-left: 10%;
-}
-
-.img-figcaption{
-	padding: 8px;
-	position: relative;
-	font-weight: bold;
-	padding-left: 0%;
-}
-
 ol.references {
     counter-reset: list;
 }
