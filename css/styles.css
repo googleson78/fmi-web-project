@@ -107,19 +107,19 @@ body {
 	padding-left: 0%;
 }
 
-ol {
+ol.references {
     counter-reset: list;
 }
-ol > li {
+ol.references > li {
     list-style: none;
 }
-ol > li:before {
+ol.references > li:before {
     content: "[" counter(list) "] ";
     counter-increment: list;
 }
 li a {
   text-decoration: none;
 }
- li a:hover{
+li a:hover{
    color: #000;
  }
