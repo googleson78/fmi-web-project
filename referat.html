@@ -16,6 +16,7 @@
             <li class="menu"> <a href="#combinators">Основни комбинатори</a> </li>
             <li class="menu"> <a href="#serving">Имплементиране на сървър</a> </li>
             <li class="menu"> <a href="#querying">Правене на заявки към сървър</a> </li>
+            <li class="menu"> <a href="#conclusion">Заключение</a> </li>
             <li class="menu"> <a href="#full-program">Пълната програма</a> </li>
             <li class="menu"> <a href="#resources">Използвани ресурси</a> </li>
           </ul>
@@ -520,10 +521,6 @@ reqStepCounter = let _ :<|> f = client api in f
           <br>
           Отново работим с чисти Haskell-ски функции - няма слагане на низове като header-и, няма слагане на методи, няма кодирания в JSON и т.н.
           <br>
-          <br>
-          Безплатен обяд <b>има</b>, когато човек даде достатъчно мощ и информация на типовата си система.
-          <br>
-          <br>
           Подобно на това как <code>Handler a</code> е среда за отговор на заявки, <code>ClientM a</code> е среда в която можем да <b>правим</b> заявки и да се грижим за грешки
           от заявки.
           <br>
@@ -571,6 +568,15 @@ Right NoContent
 Right (CounterVal {getCounterVal = 79})
           </code></pre>
         </div>
+        <div class="section" id="conclusion">
+          <h2>Заключение</h2>
+          <span style="text-decoration: line-through;">servant и Haskell са яки неща. Пишете на Haskell и ползвайте servant.</span>
+          <br>
+          Servant ни позволява да дадем формална формулировка на API, а фактът че тази формулировка е на език със сравнително богати средства за програмиране с типове
+          позволява да се използва генерично програмиране за да се автоматизират огромни части от правенето и отговарянето на заявки.
+          <br>
+          <br>
+          Безплатен обяд <b>има</b>, когато човек даде достатъчно мощ и информация на типовата си система.
 
         <div class="section" id="full-program">
           <h2>Пълната програма</h2>
