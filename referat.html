@@ -16,6 +16,7 @@
             <li class="menu"> <a href="#combinators">Основни комбинатори</a> </li>
             <li class="menu"> <a href="#serving">Имплементиране на сървър</a> </li>
             <li class="menu"> <a href="#querying">Правене на заявки към сървър</a> </li>
+            <li class="menu"> <a href="#full-program">Пълната програма</a> </li>
             <li class="menu"> <a href="#resources">Използвани ресурси</a> </li>
           </ul>
         </nav>
@@ -239,11 +240,240 @@ type StepCounter = "step" :> PostNoContent
 
         <div class="section" id="serving">
           <h2>Имплементиране на сървър</h2>
-          WIP
+          Ще демонстрираме как чрез servant-server можем лесно да имплементираме сървър който да отговаря на заявки по зададено API.
+          <br>
+          За целта ще разширим малко първоначалния пример, за да се покаже по-голяма функционалност и удобството, което библиотеката предоставя.
+          <br>
+          Списъкът ни от разширения и включвание нараства, защото ще имплементираме сървър:
+          <pre><code>{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
+
+module Example where
+
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson
+import Data.IORef
+import Data.Proxy
+import Network.Wai.Handler.Warp (run)
+import Servant
+import Servant.API
+import Servant.Server
+import System.IO.Unsafe
+          </code></pre>
+          По-интересните неща от тук са:
+          <ul>
+            <li>включването на <code>Network.Wai.Handler.Warp</code> от библиотеката <code>warp</code>, която е имплементация на ниско ниво на HTTP</li>
+            <li>включването на <code>Servant.Server</code> от библиотеката servant-server, която имплементира нужните функционалности за "генериране" на сървър по API</li>
+          </ul>
+          Както и самото API:
+          <code><pre>newtype CounterVal = CounterVal {getCounterVal :: Int}
+  deriving (Show, Num, FromJSON, ToJSON)
+
+type Counter = GetCounter :<|> StepCounter
+
+type GetCounter = Get '[JSON] CounterVal
+type StepCounter = "step" :> Header "User" String :> ReqBody '[JSON] CounterVal :> PostNoContent
+        </code></pre>
+        Промяната която виждаме тук е че <code>StepCounter</code> е добило повече навързани с <code>(:>)</code> елементи:
+          <ul>
+            <li>с <code>Header "User" String</code> ще добавим header който да служи като "автентикация", позволявайки само на <code>Pesho</code> да прави модификации</li>
+            <li>с <code>ReqBody '[JSON] CounterVal</code> ще взимаме тяло на заявката като JSON, което да използваме като стойност с която да увеличим брояча ни</li>
+          </ul>
+        Още нещо допълнително което ще ни трябва:
+        <code><pre>api :: Proxy Counter
+api = Proxy
+        </code></pre>
+        <code>Proxy a</code> е тип който винаги има една и съща стойност (кръстена както самия тип) - <code>Proxy</code>.
+        <br>
+        Неговата функцоналност идва от това, че сме фиксирали <b>какъв е типът <code>a</code></b> - в този случай нашето API - <code>Counter</code>.
+        <br>
+        По този начин можем да индикираме на други функции какъв тип да ползват, подавайки им <code>api</code>.
+        <br>
+        Това е леко хакаво и в днешни дни има по-удобна алтернатива (<code>TypeApplications</code>), но е в servant още е така за backwards compatibility.
+        <br>
+        <br>
+        Имплементацията на едно API е огледална на неговата спецификация:
+        <code><pre>counter :: Server Counter
+counter = getCounter :<|> stepCounter
+        </code></pre>
+        За да имплементираме сървър за <code>Counter</code> трябва да имплементираме сървъри за <code>GetCounter</code> и за <code>StepCounter</code> и да ги комбинираме с
+        <code>(:<|>)</code>, което в този случай вече е конструктор на ниво <b>стойност</b>, съответстващ на типовия <code>(:<|>)</code>.
+        <br>
+        В типовата сигнатура срещаме едно от централните неща в servant-server - функцията на <b>типово ниво</b> <code>Server</code>.
+        <br>
+        Тя отговаря за това, по подадено тип на API да генерира <b>правилният тип</b>, който трябва да имат функциите които ще отговарят на заявки.
+        <br>
+        В този случай <code>Server Counter = Server GetCounter :<|> Server StepCounter</code>, поради което ни е позволено в имплементацията на <code>counter</code>
+        да използваме конструктора <code>(:<|>)</code>.
+        <br>
+        Нека сега разгледаме двете по-малки части, започвайки от по-простата:
+        <code><pre>getCounter :: Server GetCounter
+getCounter = readCounter
+        </code></pre>
+        Тук изглежда сякаш не сме "имплементирали" каквото и да е, защото в действителност е така.
+        <br>
+        Пропусната е имплементацията на <code>readCounter</code>, поради причината, че тя не е директно свързана с функционалността на servant и servant-server.
+        <br>
+        Тя може да бъде разгледана в <a href="#full-program">секцията съдържаща пълната програма</a>, но е достатъчно да знаем че четем глобална променлива.
+        <br>
+        <br>
+        Ще е хубаво обаче да разгледаме до какво се оценява <code>Server GetCounter</code> в този случай, а именно <code>Handler CounterVal</code>.
+        <br>
+        <br>
+        Можем да си мислим за <code>Handler a</code> като за действие в някаква среда, в която ни е разрешено да правим странични ефекти (входно-изходни операции),
+        както и да хвърляме HTPP грешки (както ще бъде демонстрирано при имплементацията на <code>stepCounter</code>.
+        <br>
+        При изпълнението на <code>Handler a</code> ще получим стойност от тип <code>a</code>, в нашия случай <code>CounterVal</code> и това е точно какво се случва,
+        когато някой направи заявка към <code>GetCounter</code>.
+        <br>
+        servant-server ще се погрижи заявката да бъде "рутирана" до <code>getCounter</code> функцията, която в този момент бива изпълнена, произвеждайки <code>CounterVal</code>,
+        след което servant-server отново ще се погрижи тази стойност да бъде кодирана в JSON и пратена като отговор на заявката.
+        <br>
+        Тук виждаме, че реално ние програмираме почти изцяло абстрахирани от това че имплементираме отговор на заявка - ако искаме можем да извикаме функцията си
+        без въобще да работим в среда на сървър. Няма никакво (де)кодиране, никакво ръчно взимане на параметри или каквато и да е работа със самата заявка.
+        <br>
+        <br>
+        servant-server е свело работата със заявката до работа с най-обикновени Haskell-ски стойности!
+        Нека да разгледаме <code>stepCounter</code>, за да добием по-добра представа за това.
+        <br>
+        Ще започнем, отново, с типовата ѝ сигнатура и какво прави <code>Server</code> в случая за <code>StepCounter</code>.
+        <br>
+        Нека разгледаме стъпка по стъпка оценяването ѝ:
+        <ol>
+          <li><code>Server StepCounter</code>
+            <br>
+            Начало.</li>
+          <li><code>Server ("step" :> Header "User" String :> ReqBody '[JSON] CounterVal :> PostNoContent)</code>
+            <br>
+            Разпъване на <code>StepCounter</code>.</li>
+          <li><code>Server (Header "User" String :> ReqBody '[JSON] CounterVal :> PostNoContent)</code>
+            <br>
+            Статичните имена като <code>"step"</code> не променят функцията ни.</li>
+          <li><code>Maybe String -> Server (ReqBody '[JSON] CounterVal :> PostNoContent)</code>
+            <br>
+            <code>Header "User" String</code> добавя <code>Maybe String</code> аргумент към функцията ни,
+            който servant-server ще ни подаде когато е направена заявка, взимайки го от header-а <code>User</code> на заявката.
+            <br>
+            <code>String</code> е обвито в <code>Maybe</code>, понеже може header-ът да липсва.</li>
+          <li><code>Maybe String -> CounterVal -> Server PostNoContent</code>
+            <br>
+            Подобно на <code>Header</code>, <code>ReqBody '[JSON] CounterVal</code> генерира още един аргумент на функцията ни, който
+            servant-server ще се погрижи да ни подаде, взимайки го от тялото на заявката и декодирайки го от JSON предварително.</li>
+          <li><code>Maybe String -> CounterVal -> Handler NoContent</code>
+            <br>
+            Както при <code>GetCounter</code>, <code>Server PostNoContent</code> ще се оцени до конкретен тип, обвит в контекста <code>Handler</code>,
+            като в този случай той е <code>NoContent</code> с точно една стойност от него - <code>NoContent</code>, индикирайки че нямаме какво да връщаме.
+            <br>
+            servant-server отново ще се погрижи тя да стигне (с <code>HTTP 204 - No Content</code>) до потребителя правещ заявка, но в тъй като няма съдържание тук, той няма да види нищо.</li>
+        </ol>
+        Във финалната версия на програмата е удобно за бъдещи модификации да се остави във вида <code>Server StepCounter</code>, но с цел да е по-лесно разбирането,
+        тук ще използваме "истинската" версия, както я пресметнахме току-що.
+        <br>
+        След като знаем вече какъв е типът на функцията ни можем да минем към нейната имплементация.
+        Ще вземем двата ни аргумента като за начало:
+        <code><pre>stepCounter :: Maybe String -> CounterVal -> Handler NoContent
+stepCounter muser amount = _
+        </code></pre>
+        Понеже искаме header-ът ни да се държи като автентикация, неща проверим първо дали го има въобще:
+        <code><pre>stepCounter :: Maybe String -> CounterVal -> Handler NoContent
+stepCounter muser amount =
+  case muser of
+    Nothing -> _
+    Just user -> _
+        </code></pre>
+        Чрез <code>case</code> твърдение разглеждаме двете възможности за <code>Maybe</code> типа. Ако сме попаднали в случая че нямаме header (<code>Nothing</code>),
+        отхвърляме потребителя с <code>401 Unauthorized</code>, разяснявайки че е нужен "User" header:
+        <code><pre>stepCounter :: Maybe String -> CounterVal -> Handler NoContent
+stepCounter muser amount =
+  case muser of
+    Nothing -> throwError err401 { errBody = "You must identify yourself via the \"User\" header." }
+    Just user -> _
+        </code></pre>
+        Ако пък сме в случая в който е подаден header (<code>Just user</code>), добиваме достъп до стойността му в името <code>user</code>, благодарение на <code>Maybe</code>,
+        и можем да проверим дали потребителят е "Pesho", отхвърляйки го в противен случай с <code>403 - Forbidden</code>:
+        <code><pre>stepCounter :: Maybe String -> CounterVal -> Handler NoContent
+stepCounter muser amount =
+  case muser of
+    Nothing -> throwError err401 { errBody = "You must identify yourself via the \"User\" header." }
+    Just user ->
+      if user == "Pesho"
+      then _
+      else throwError err403 { errBody = "Only Pesho can modify the counter." }
+        </code></pre>
+        Ако всичко е наред - имаме header и в действителност потребителят е "Pesho", увеличаваме брояча и връщаме <code>NoContent</code>:
+        <code><pre>stepCounter :: Maybe String -> CounterVal -> Handler NoContent
+stepCounter muser amount =
+  case muser of
+    Nothing -> throwError err401 { errBody = "You must identify yourself via the \"User\" header." }
+    Just user ->
+      if user == "Pesho"
+      then do
+        incrementCounter amount
+        pure NoContent
+      else throwError err403 { errBody = "Only Pesho can modify the counter." }
+        </code></pre>
+        Както преди, <code>incrementCounter</code> не е показана тук, защото не е директно свързана, но <a href="#full-program">имплементацията ѝ</a> представлява
+        атомично (за да сме thread-safe) инкрементиране на глобалния ни брояч.
+        <br>
+        След като сме готови с функционалността на сървъра ни, единственото което ни остава е да използваме <code>server</code> функцията от servant-server,
+        която ще ни даде подходящо за <code>warp</code> представяне на програмата ни (<code>Application</code>), за да можем да го пуснем с <code>run</code> от <code>warp</code>:
+        <code><pre>startServer :: IO ()
+startServer = do
+  putStrLn "Starting a server"
+  run 8080 (serve api counter)
+        </code></pre>
+        <br>
+        Да направим бърза проверка че работи с curl:
+        <code><pre><дълга-инвокация-на-ghci-през-cabal-с-нужните-пакети>
+[1 of 1] Compiling Example          ( example.hs, interpreted )
+Ok, one module loaded.
+> startServer
+Starting a server
+
+<в-друг-терминал>
+> curl localhost:8080
+0
+> curl \
+  -X POST \                             # слагаме POST за метод на заявката
+  -H 'Content-Type: application/json' \ # слагаме Content-Type header
+  -d '13' \                             # слагаме тяло 13
+  localhost:8080/step
+You must identify yourself via the "User" header. # не става, щото нямаме User
+> curl \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -d '13' \
+  -H 'User: Gosho' \ # слагаме и header User
+  localhost:8080/step
+Only Pesho can modify the counter. # но ние не сме Pesho, не можем да променяме брояча
+> curl \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -d '13' \
+  -H 'User: Pesho' \
+  localhost:8080/step
+> curl localhost:8080
+13 # success!
+> curl \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -d '42' \
+  -H 'User: Pesho' \
+  localhost:8080/step
+> curl localhost:8080
+55
+        </code></pre>
         </div>
 
         <div class="section" id="querying">
           <h2>Правене на заявки към сървър</h2>
+          WIP
+        </div>
+
+        <div class="section" id="full-program">
+          <h2>Пълната програма</h2>
           WIP
         </div>
 
