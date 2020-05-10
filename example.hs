@@ -25,18 +25,19 @@ type Counter = GetCounter :<|> StepCounter
 type GetCounter = Get '[JSON] CounterVal
 type StepCounter = "step" :> Header "User" String :> ReqBody '[JSON] CounterVal :> PostNoContent
 
-server :: Application
-server = serve api counter
-
 api :: Proxy Counter
 api = Proxy
 
 counter :: Server Counter
 counter = getCounter :<|> stepCounter
 
+-- "real" signature:
+-- getCounter :: Handler CounterVal
 getCounter :: Server GetCounter
 getCounter = readCounter
 
+-- "real" signature:
+-- stepCounter :: Maybe String -> CounterVal -> Handler NoContent
 stepCounter :: Server StepCounter
 stepCounter muser amount =
   case muser of
@@ -51,7 +52,7 @@ stepCounter muser amount =
 startServer :: IO ()
 startServer = do
   putStrLn "Starting a server"
-  run 8080 server
+  run 8080 (serve api counter)
 
 incrementCounter :: CounterVal -> Handler ()
 incrementCounter n = liftIO $ atomicModifyIORef' globalCounter $ \old -> (old + n, ())
