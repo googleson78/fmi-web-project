@@ -474,7 +474,102 @@ Only Pesho can modify the counter. # но ние не сме Pesho, не мож�
 
         <div class="section" id="querying">
           <h2>Правене на заявки към сървър</h2>
-          WIP
+          Сервирането е готино, обаче все пак беше досадно да правим заявки през <code>curl</code> ръчно.
+          <br>
+          За какво трябва ръчно да слагаме методи, header-и, да кодираме и т.н. - нали вече се разбрахме че го има това в API описанието ни?
+          <br>
+          Тук идва servant-client, което има също толкова силна роля в автоматизирането на заявки, колкото servant-server има в отговарянето им.
+          <br>
+          Отново ще трябва да разширим примера си, за да включим нужните за servant-client модули:
+          <code><pre>import Control.Monad.IO.Class (liftIO)
+import Data.Aeson
+import Data.IORef
+import Data.Proxy
+import Network.HTTP.Client (newManager, defaultManagerSettings)
+import Network.Wai.Handler.Warp (run)
+import Servant
+import Servant.API
+import Servant.Client
+import Servant.Server
+import System.IO.Unsafe
+        </code></pre>
+        Интересните неща тук са:
+        <ul>
+          <li><code>Network.HTTP.Client</code> от библиотеката http-client - реализира HTTP заявки на ниско ниво, като "manager"-ът се грижи за неща като отворени връзки</li>
+          <li><code>import Servant.Client</code> от библиотеката servant-client - функционалността за правене на заявки</li>
+        </ul>
+        Дуално на това как <code>serve</code> от servant-server <b>взима</b> построена структура от сглобени с <code>(:<|>)</code> функции,
+        тук имаме <code>client</code>, която по дадено API <b>връща</b> структура от слобени с <code>(:<|>)</code> функции, които можем да използваме за заявки.
+        <br>
+        Тъй като ще е по-удобно да ги ползваме поотделно, ги свързваме и поотделно с имена, като разглобяваме с напасване на образци (pattern-matching) резултата от <code>client</code>:
+        <code><pre>reqGetCounter :: Client ClientM GetCounter
+reqGetCounter = let f :<|> _ = client api in f
+
+reqStepCounter :: Client ClientM StepCounter
+reqStepCounter = let _ :<|> f = client api in f
+        </code></pre>
+        Отново, структурата която получаваме е "огледална" на структурата на API-то ни, и затова "отляво" на <code>(:<|>)</code> седи функцията за <code>GetCounter</code>,
+        а "отдясно" седи функцията за <code>StepCounter</code>.
+        Както при servant-server, тук голяма част от работата върши функцията на типово ниво <code>Client</code>
+        <br>
+        Нека отново разгледаме до какво се оценява, но в съкратен вид, тъй като стъпките на оценяването са почти идентични:
+        <br>
+        <code>Client ClientM GetCounter = ClientM CounterVal</code>
+        <br>
+        <code>Client ClientM StepCounter = Maybe String -> CounterVal -> ClientM NoContent</code>
+        <br>
+        Отново работим с чисти Haskell-ски функции - няма слагане на низове като header-и, няма слагане на методи, няма кодирания в JSON и т.н.
+        <br>
+        <br>
+        Безплатен обяд <b>има</b>, когато човек даде достатъчно мощ и информация на типовата си система.
+        <br>
+        <br>
+        Подобно на това как <code>Handler a</code> е среда за отговор на заявки, <code>ClientM a</code> е среда в която можем да <b>правим</b> заявки и да се грижим за грешки
+        от заявки.
+        <br>
+        Можем да си мислим за <code>ClientM a</code> като за заявка която е чакаща да се случи, като нейното изпълнение се извършва чрез <code>runClientM</code>
+        <br>
+        Освен това ще ни трябва и <code>ClientEnv</code> което е тип от servant-client, носещ в себе си информация нужна за заявки, като например
+        <code>Manager</code> от http-client и подобни.
+        <br>
+        За цел демонстрация е достатъчно добре да имаме глобално декларирана <code>ClientEnv</code>, като не ни интересува <a href="#full-program">как точно сме я създали</a>:
+        <br>
+        <code>defaultClientEnv :: ClientEnv</code>
+        <br>
+        Да видим и в крайна сметка заявките в действие:
+        <code><pre><дълга-инвокация-на-ghci-през-cabal-с-нужните-пакети>
+[1 of 1] Compiling Example          ( example.hs, interpreted )
+Ok, one module loaded.
+> startServer
+Starting a server
+
+<в-друг-терминал>
+<дълга-инвокация-на-ghci-през-cabal-с-нужните-пакети>
+[1 of 1] Compiling Example          ( example.hs, interpreted )
+Ok, one module loaded.
+> :t runClientM
+runClientM :: ClientM a -> ClientEnv -> IO (Either ClientError a) -- типът на runClientM
+> runClientM reqGetCounter defaultClientEnv
+Right (CounterVal {getCounterVal = 0}) -- успешно получаваме сегашната стойност, индикирано от резултатния Right
+
+> runClientM (reqStepCounter Nothing (CounterVal 10)) defaultClientEnv
+<дълга-Left-грешка-в-която-пише-че-няма-401-няма-User-header>
+
+> runClientM (reqStepCounter (Just "Gosho") (CounterVal 10)) defaultClientEnv
+<дълга-Left-грешка-в-която-пише-че-няма-403-не-си-Pesho>
+
+> runClientM (reqStepCounter (Just "Pesho") (CounterVal 10)) defaultClientEnv
+Right NoContent -- получаваме успех индикиран от Right-а и обещаната NoContent стойност, която не ни трябва реално
+
+> runClientM reqGetCounter defaultClientEnv
+Right (CounterVal {getCounterVal = 10})
+
+> runClientM (reqStepCounter (Just "Pesho") (CounterVal 69)) defaultClientEnv
+Right NoContent
+
+> runClientM reqGetCounter defaultClientEnv
+Right (CounterVal {getCounterVal = 79})
+        </code></pre>
         </div>
 
         <div class="section" id="full-program">
