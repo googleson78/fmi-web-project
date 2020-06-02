@@ -43,7 +43,7 @@ newtype CounterVal = CounterVal {getCounterVal :: Int}
 ```
 
 # Дефиниция на API
-Главното ни API - кобминация от две други
+Главното ни API - комбинация от две други
 ```haskell
 type Counter = GetCounter :<|> StepCounter
 ```
