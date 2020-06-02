@@ -49,7 +49,7 @@ type Counter = GetCounter :<|> StepCounter
 ```
 
 # `GetCounter`
-API-то за взимане взимане на брояч
+API-то за взимане на брояч
 ```haskell
 type GetCounter
 ```
