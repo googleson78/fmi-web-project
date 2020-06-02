@@ -140,7 +140,7 @@ stepCounter :: Maybe String -> CounterVal -> Handler NoContent
 "Истинската" сигнатура на функцията, пресметната е от типовата функция `Server`
 ```haskell
 
-                    -- type StepCounter = "step" :>
+                    -- type StepCounter =
 stepCounter ::      --   "step" :>
   Maybe String ->   --   Header "user" String :>
   CounterVal ->     --   ReqBody '[JSON] CounterVal :>
