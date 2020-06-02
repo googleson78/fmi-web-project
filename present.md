@@ -342,7 +342,7 @@ Only Pesho can modify the counter.
   **Не може да сбъркаш типовете!!**
 
 # `servant-cleint` заявки
-Както чрез `server api counter` се навръзва сървър от по-малки парчета,
+Както чрез `serve api counter` се навръзва сървър от по-малки парчета,
 така чрез `client api` се генерират функции за заявки.
 
 # `servant-cleint` заявки
