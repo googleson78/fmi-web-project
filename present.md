@@ -142,7 +142,7 @@ stepCounter :: Maybe String -> CounterVal -> Handler NoContent
 
                     -- type StepCounter =
 stepCounter ::      --   "step" :>
-  Maybe String ->   --   Header "user" String :>
+  Maybe String ->   --   Header "User" String :>
   CounterVal ->     --   ReqBody '[JSON] CounterVal :>
   Handler NoContent --   PostNoContent
 ```
